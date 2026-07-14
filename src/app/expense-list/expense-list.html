@@ -1,0 +1,145 @@
+<app-navbar></app-navbar>
+
+<div class="max-w-screen mx-auto p-6 bg-black min-h-screen flex flex-col gap-y-6">
+  
+  <!-- Header System -->
+  <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
+    <div>
+      <h2 class="text-3xl font-bold text-blue-600">Financial Tracker</h2>
+      <p class="text-sm text-white mt-0.5">
+        Viewing: <span class="font-semibold text-white">{{ selectedMonth === 'all' ? 'All Time' : selectedMonth }}</span>
+      </p>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <select [(ngModel)]="selectedMonth" (change)="setTab(currentTab)" class="border p-2 rounded-md text-sm bg-white text-gray-700 shadow-sm outline-none">
+        <option value="all">📅 All Months</option>
+        @for (month of availableMonths; track month) {
+          <option [value]="month">{{ month }}</option>
+        }
+      </select>
+
+      <button (click)="toggleForm()" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium shadow hover:bg-blue-700 transition shrink-0">
+        {{ isFormVisible ? 'Close Form' : 'Add Entry' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 w-full">
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+      <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Income</p>
+      <p class="text-xl font-bold text-green-600 mt-1">€{{ totalIncome | number:'1.2-2' }}</p>
+    </div>
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+      <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Expenses</p>
+      <p class="text-xl font-bold text-red-500 mt-1">€{{ totalExpenses | number:'1.2-2' }}</p>
+    </div>
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+      <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Reservations</p>
+      <p class="text-xl font-bold text-purple-600 mt-1">€{{ totalReservations | number:'1.2-2' }}</p>
+    </div>
+    <div class="p-4 rounded-xl shadow-sm border" [ngClass]="totalBalance >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'">
+      <p class="text-xs font-semibold uppercase tracking-wider" [ngClass]="totalBalance >= 0 ? 'text-green-600' : 'text-red-600'">Net Balance</p>
+      <p class="text-xl font-black mt-1" [ngClass]="totalBalance >= 0 ? 'text-green-800' : 'text-red-800'">€{{ totalBalance | number:'1.2-2' }}</p>
+    </div>
+  </div>
+
+  <!-- Form Component Configuration -->
+  @if (isFormVisible) {
+    <form (submit)="addItem($event)" class="bg-white p-6 rounded-lg shadow-md mb-8 grid grid-cols-1 md:grid-cols-5 gap-4">
+      <input type="text" id="name" placeholder="Item Name (e.g., Monthly Salary)" required class="border p-2 rounded w-full">
+      <input type="number" id="amount" placeholder="Amount (€)" required class="border p-2 rounded w-full">
+      <input type="date" id="date" required class="border p-2 rounded w-full">
+      
+      <select id="type" class="border p-2 rounded w-full bg-white">
+        <option value="income">Income 💰</option>
+        <option value="expense">Expense 💸</option>
+        <option value="reservation">Reservation 📅</option>
+      </select>
+      
+      <button type="submit" class="bg-green-600 text-white p-2 rounded shadow hover:bg-green-700 transition md:col-span-5">
+        Save Entry
+      </button>
+    </form>
+  }
+
+  <!-- Tab Navigators -->
+  <div class="flex space-x-2 mb-4 border-b border-gray-200 pb-2 overflow-x-auto">
+    <button (click)="setTab('all')" [class]="currentTab === 'all' ? 'bg-blue-600 text-white px-4 py-1.5 rounded-md text-sm font-medium whitespace-nowrap' : ' text-white hover:bg-gray-100 px-4 py-1.5 rounded-md text-sm whitespace-nowrap'">
+      All
+    </button>
+    <button (click)="setTab('income')" [class]="currentTab === 'income' ? 'bg-blue-600 text-white px-4 py-1.5 rounded-md text-sm font-medium whitespace-nowrap' : ' text-white hover:bg-gray-100 px-4 py-1.5 rounded-md text-sm whitespace-nowrap'">
+      Income 💰
+    </button>
+    <button (click)="setTab('expenses')" [class]="currentTab === 'expenses' ? 'bg-blue-600 text-white px-4 py-1.5 rounded-md text-sm font-medium whitespace-nowrap' : ' text-white hover:bg-gray-100 px-4 py-1.5 rounded-md text-sm whitespace-nowrap'">
+      Expenses 💸
+    </button>
+    <button (click)="setTab('reservations')" [class]="currentTab === 'reservations' ? 'bg-blue-600 text-white px-4 py-1.5 rounded-md text-sm font-medium whitespace-nowrap' : ' text-white hover:bg-gray-100 px-4 py-1.5 rounded-md text-sm whitespace-nowrap'">
+      Reservations 📅
+    </button>
+  </div>
+
+  <!-- Main View Output Table -->
+  <div class="bg-white rounded-lg shadow-md overflow-hidden">
+    <table class="w-full text-left border-collapse">
+      <thead>
+        <tr class="bg-gray-200 text-gray-700">
+          <th class="p-4">Type</th>
+          <th class="p-4">Name</th>
+          <th class="p-4">Amount</th>
+          <th class="p-4">Date</th>
+          <th class="p-4 text-center">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of filteredItems; track item.id) {
+          <tr class="border-b hover:bg-gray-50">
+            <td class="p-4">
+              @if (item.type === 'income') {
+                <span class="bg-green-100 text-green-700 text-xs px-2.5 py-1 rounded-full font-bold">Income</span>
+              } @else if (item.type === 'expense') {
+                @if (item.isPaid) {
+                  <span class="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-1 rounded-full font-bold inline-flex items-center gap-1">Paid ✓</span>
+                } @else {
+                  <span class="bg-amber-100 text-amber-800 text-xs px-2.5 py-1 rounded-full font-bold inline-flex items-center gap-1">Unpaid ⏳</span>
+                }
+              } @else {
+                <span class="bg-purple-100 text-purple-700 text-xs px-2.5 py-1 rounded-full font-bold">Reservation</span>
+              }
+            </td>
+            <td class="p-4 font-medium text-gray-800">{{ item.name }}</td>
+            <td class="p-4 font-bold" [ngClass]="item.type === 'income' ? 'text-green-600' : 'text-gray-900'">
+              {{ item.type === 'income' ? '+' : '-' }}€{{ item.amount }}
+            </td>
+            <td class="p-4 text-gray-500">{{ item.date }}</td>
+            <td class="p-4 text-center">
+              <div class="flex items-center justify-center gap-x-2">
+                @if (item.type === 'expense') {
+                  <label class="inline-flex items-center gap-x-1 cursor-pointer bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded text-xs text-gray-700 select-none">
+                    <input type="checkbox" [checked]="item.isPaid" (change)="toggleExpensePaid(item)" class="rounded text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5 cursor-pointer">
+                    Paid
+                  </label>
+                }
+                @if (item.type === 'reservation') {
+                  <button (click)="addToReservation(item)" class="text-green-600 hover:text-green-800 font-semibold text-xs bg-green-50 px-2 py-1 rounded whitespace-nowrap">
+                    Add To Pot 💶
+                  </button>
+                  <button (click)="deductFromReservation(item)" class="text-blue-600 hover:text-blue-800 font-semibold text-sm bg-blue-50 px-2 py-1 rounded">
+                    Take From Pot 💳
+                  </button>
+                }              
+              <button (click)="deleteItem(item.id)" class="text-red-500 hover:text-red-700 font-semibold text-sm">
+                Remove
+              </button>
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="5" class="p-8 text-center text-gray-400">No data points logged in this view!</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
